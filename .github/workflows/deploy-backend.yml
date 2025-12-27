@@ -1,16 +1,17 @@
-name: Build and Push Frontend Image
+name: Build and Push Backend Image
 
 on:
   push:
     branches:
       - main
     paths:
-      - 'apps/frontend/**'
+      - 'apps/backend/**'
+      - '.github/workflows/deploy-backend.yml'
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}/frontend
+  IMAGE_NAME: ${{ github.repository }}/backend
 
 jobs:
   build-and-push:
@@ -46,12 +47,9 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./apps/frontend
+          context: ./apps/backend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          # Build args for environment variables (optional)
-          # build-args: |
-          #   VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}

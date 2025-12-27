@@ -3,21 +3,21 @@
 ## Environment Variables
 
 ### Local Development
-1. Kopiere `.env.example` zu `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-2. Bearbeite `.env` mit deinen lokalen Werten:
-   ```env
-   VITE_API_BASE_URL=http://localhost:3000/api
-   ```
+1. Copy `.env.example` to `.env`:
+    ```bash
+    cp .env.example .env
+    ```
+2. Edit `.env` with your local values:
+    ```env
+    VITE_API_BASE_URL=http://localhost:3000/api
+    ```
 
-**Wichtig:** Vite benötigt das Präfix `VITE_` für alle Environment-Variablen, die im Client-Code verfügbar sein sollen!
+**Important:** Vite requires the `VITE_` prefix for all environment variables that should be available in client code!
 
 ### Production / Docker Deployment
 
 #### Option 1: Build-time Environment Variables
-Da Vite zur Build-Zeit die Variablen in den Code einbettet, müssen sie beim **Build** übergeben werden:
+Since Vite embeds variables into the code at build time, they must be passed during **build**:
 
 ```bash
 docker build \
@@ -26,15 +26,15 @@ docker build \
   ./apps/frontend
 ```
 
-Dann:
+Then:
 ```bash
 docker run -d -p 80:80 ghcr.io/username/frontend:latest
 ```
 
 #### Option 2: Nginx Runtime Configuration
-Für dynamische API-URLs zur Runtime kannst du ein Entrypoint-Script verwenden:
+For dynamic API URLs at runtime, you can use an entrypoint script:
 
-Erstelle `docker-entrypoint.sh`:
+Create `docker-entrypoint.sh`:
 ```bash
 #!/bin/sh
 # Replace environment variables in built files
@@ -45,7 +45,7 @@ mv /tmp/index.html /usr/share/nginx/html/index.html
 nginx -g 'daemon off;'
 ```
 
-Dann im Dockerfile:
+Then in the Dockerfile:
 ```dockerfile
 COPY docker-entrypoint.sh /
 RUN chmod +x /docker-entrypoint.sh
@@ -57,14 +57,14 @@ ENTRYPOINT ["/docker-entrypoint.sh"]
 version: '3.8'
 services:
   frontend:
-    image: ghcr.io/username/frontend:latest
-    ports:
-      - "80:80"
-    environment:
-      - VITE_API_BASE_URL=${VITE_API_BASE_URL}
-    # Oder mit env_file:
-    # env_file:
-    #   - .env
+     image: ghcr.io/username/frontend:latest
+     ports:
+        - "80:80"
+     environment:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL}
+     # Or with env_file:
+     # env_file:
+     #   - .env
 ```
 
 #### Option 4: Kubernetes ConfigMap
@@ -82,71 +82,74 @@ metadata:
   name: frontend
 spec:
   template:
-    spec:
-      containers:
-      - name: frontend
-        image: ghcr.io/username/frontend:latest
-        ports:
-        - containerPort: 80
-        env:
-        - name: VITE_API_BASE_URL
-          valueFrom:
-            configMapKeyRef:
-              name: frontend-config
-              key: VITE_API_BASE_URL
+     spec:
+        containers:
+        - name: frontend
+          image: ghcr.io/username/frontend:latest
+          ports:
+          - containerPort: 80
+          env:
+          - name: VITE_API_BASE_URL
+             valueFrom:
+                configMapKeyRef:
+                  name: frontend-config
+                  key: VITE_API_BASE_URL
 ```
 
-## API Endpoint Konfiguration im Code
+## API Endpoint Configuration in Code
 
-Um die Environment-Variable zu nutzen, verwende sie in `api.ts`:
+To use the environment variable, reference it in `api.ts`:
 
 ```typescript
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 ```
 
-## Image auf GHCR pushen
+## Push Image to GHCR
 
-Das Image wird automatisch auf GHCR gepusht wenn:
-- Code in `apps/frontend/` geändert wird
-- Push auf `main` Branch erfolgt
-- Oder manuell über "Actions" → "Build and Push Frontend Image" → "Run workflow"
+The image is automatically pushed to GHCR when:
+- Code in `apps/frontend/` is changed
+- Push to `main` branch occurs
+- Or manually via "Actions" → "Build and Push Frontend Image" → "Run workflow"
+
+**Workflow:** `.github/workflows/deploy-frontend.yml` (in repository root)
 
 Image URL: `ghcr.io/YOUR_USERNAME/YOUR_REPO/frontend:latest`
 
-## Production Build lokal testen
+## Test Production Build Locally
 
 ```bash
 # Build
 npm run build
 
-# Preview mit Vite
+# Preview with Vite
 npm run preview
 
-# Oder mit Docker
+# Or with Docker
 docker build -t frontend-test .
 docker run -p 80:80 frontend-test
 ```
 
 ## Nginx Features
 
-Das Production-Image nutzt Nginx mit:
+The production image uses Nginx with:
 - ✅ Gzip Compression
 - ✅ Security Headers (X-Frame-Options, etc.)
 - ✅ SPA Routing Support (Client-side routing)
-- ✅ Static Asset Caching (1 Jahr für JS/CSS/Images)
-- ✅ No-cache für index.html
+- ✅ Static Asset Caching (1 year for JS/CSS/Images)
+- ✅ No-cache for index.html
 
-## Verfügbar machen
+## Make Public
 
-Nach dem Push ist das Image standardmäßig privat. Um es öffentlich zu machen:
-1. Gehe zu: `https://github.com/users/YOUR_USERNAME/packages/container/YOUR_REPO%2Ffrontend/settings`
-2. Scrolle zu "Danger Zone"
-3. Klicke "Change visibility" → "Public"
+After push, the image is private by default. To make it public:
+1. Go to: `https://github.com/users/YOUR_USERNAME/packages/container/YOUR_REPO%2Ffrontend/settings`
+2. Scroll to "Danger Zone"
+3. Click "Change visibility" → "Public"
 
 ## Multi-Stage Build
 
-Das Dockerfile nutzt Multi-Stage Build:
-1. **Builder Stage**: Node.js zum Bauen der App
-2. **Production Stage**: Leichtes Nginx Alpine Image (~25 MB statt ~1 GB)
+The Dockerfile uses multi-stage build:
+1. **Builder Stage**: Node.js to build the app
+2. **Production Stage**: Lightweight Nginx Alpine image (~25 MB instead of ~1 GB)
 
-Dies reduziert die finale Image-Größe erheblich!
+This significantly reduces the final image size!
+
